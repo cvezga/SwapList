@@ -1,6 +1,7 @@
 package com.github.cvezga.swaplist;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -67,8 +68,9 @@ class SwapListTest {
     }
 
     @Test
-    void updateCurrentPage_readsFileWithPathPrefixAndPageIndex() throws Exception {
-        SwapListConfig config = new SwapListConfig("swap.data",10_000);
+    void updateCurrentPage_readsFileWithPathPrefixAndPageIndex(@TempDir Path dir) throws Exception {
+        Path baseFile = dir.resolve("swap.data");
+        SwapListConfig config = new SwapListConfig(baseFile.toString(),10_000);
         SwapList swapList = new SwapList(config);
         for(int i=0; i<1_000_000; i++) {
             swapList.add("This is item #"+(i+1));
@@ -78,6 +80,5 @@ class SwapListTest {
             assertEquals("This is item #"+(i+1), serializable.toString());
         }
     }
-
 
 }
