@@ -10,6 +10,27 @@
     <packaging>jar</packaging>
     <name>SwapList</name>
     <description>Swap list data structure and configuration.</description>
+    <url>https://github.com/cvezga/SwapList</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit/</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>cvezga</id>
+            <name>Cesar Vezga</name>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/cvezga/SwapList</connection>
+        <developerConnection>scm:git:ssh://github.com/cvezga/SwapList.git</developerConnection>
+        <url>https://github.com/cvezga/SwapList</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -43,6 +64,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <extensions>true</extensions>
             </plugin>
         </plugins>
     </build>
