@@ -1,5 +1,7 @@
 package com.github.cvezga.swaplist;
 
+import com.github.cvezga.swaplist.exception.SwapListException;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,8 +15,9 @@ import java.util.Objects;
 public class SwapList {
 
     private final SwapListConfig config;
-    private SwapListPage currentPage;
+    private SwapListPage<Serializable> currentPage;
     private int currentPageIndex;
+    private int size;
 
     /**
      * Creates a swap list using the given file path and default config.
@@ -27,7 +30,7 @@ public class SwapList {
     }
 
     public SwapList(String swapListFilePath, int itemsPerPage) {
-        this(new SwapListConfig(swapListFilePath,  itemsPerPage));
+        this(new SwapListConfig(swapListFilePath, itemsPerPage));
     }
 
     /**
@@ -39,30 +42,46 @@ public class SwapList {
     public SwapList(SwapListConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.currentPageIndex = 0;
-        this.currentPage = new SwapListPage(config);
+        this.currentPage = new SwapListPage<>(config);
     }
 
     public SwapListConfig getConfig() {
         return config;
     }
 
-    /**
-     * Sets the current page instance and its consecutive index.
-     *
-     * @param page      the page to set as current (may be null to clear)
-     * @param pageIndex the consecutive page index (used for file naming)
-     */
-    private void setCurrentPage(SwapListPage page, int pageIndex) {
-        this.currentPage = page;
-        this.currentPageIndex = pageIndex;
+
+    public void add(Serializable item) throws IOException {
+        if (this.currentPage.isFull()) {
+            saveCurrentPage();
+            createNewPageInstance();
+        }
+        this.currentPage.add(item);
+        this.size++;
     }
 
-    private SwapListPage getCurrentPage() {
-        return currentPage;
+    private void createNewPageInstance() {
+        this.currentPageIndex++;
+        this.currentPage = new SwapListPage<>(config);
     }
 
-    private int getCurrentPageIndex() {
-        return currentPageIndex;
+    public Serializable get(int itemIndex) {
+
+        try {
+            swapPageForIndex(itemIndex);
+        } catch (IOException e) {
+            throw new SwapListException(e);
+        }
+
+        int pageItemIndex = itemIndex % config.getItemsPerPage();
+        return this.currentPage.get(pageItemIndex);
+    }
+
+    private void swapPageForIndex(int itemIndex) throws IOException {
+        int pageIndex = itemIndex / config.getItemsPerPage();
+        if (pageIndex != this.currentPageIndex) {
+            saveCurrentPage();
+            loadPage(pageIndex);
+        }
     }
 
     /**
@@ -77,40 +96,21 @@ public class SwapList {
         if (currentPage == null) {
             throw new IllegalStateException("no current page set");
         }
-        String path = config.getSwapListFilePath();
-        String fileName = path + "." + currentPageIndex;
-        Path filePath = Paths.get(fileName);
-        Path parent = filePath.getParent();
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
-        try (OutputStream out = new FileOutputStream(filePath.toFile());
-             ObjectOutputStream oos = new ObjectOutputStream(out)) {
-            oos.writeObject(currentPage.getList());
-        }
-    }
+        if (!this.currentPage.isSaved()) {
+            String path = config.getSwapListFilePath();
+            String fileName = path + "." + currentPageIndex;
+            Path filePath = Paths.get(fileName);
+            Path parent = filePath.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
+            try (OutputStream out = Files.newOutputStream(filePath);
+                 ObjectOutputStream oos = new ObjectOutputStream(out)) {
+                this.currentPage.setSaved(true);
+                oos.writeObject(currentPage);
 
-    public void add(Serializable item) throws IOException {
-        if (this.currentPage.isFull()) {
-            saveCurrentPage();
-            createNewPageInstance();
+            }
         }
-        this.currentPage.add(item);
-    }
-
-    private void createNewPageInstance() {
-        this.currentPageIndex++;
-        this.currentPage = new SwapListPage<Serializable>(config);
-    }
-
-    public Serializable get(int i) throws IOException {
-        int pageIndex = i / config.getItemsPerPage();
-        if (pageIndex != this.currentPageIndex) {
-            saveCurrentPage();
-            loadPage(pageIndex);
-        }
-        int pageItemIdex = i % config.getItemsPerPage();
-        return this.currentPage.get(pageItemIdex);
     }
 
     private void loadPage(int pageIndex) {
@@ -121,19 +121,19 @@ public class SwapList {
         if (parent != null && !Files.exists(parent)) {
             throw new IllegalStateException(String.format("path %s does not exist", fileName));
         }
-        try (InputStream is = new FileInputStream(filePath.toFile());
+        try (InputStream is = Files.newInputStream(filePath.toFile().toPath());
              ObjectInputStream ois = new ObjectInputStream(is)) {
-            List<Serializable> items = (List<Serializable>) ois.readObject();
-            this.currentPage = new SwapListPage(items, config);
+            this.currentPage = (SwapListPage<Serializable>) ois.readObject();
+            //this.currentPage = new SwapListPage<>(items, config);
             this.currentPageIndex = pageIndex;
 
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new SwapListException(e);
         }
 
+    }
+
+    public int getSize() {
+        return size;
     }
 }

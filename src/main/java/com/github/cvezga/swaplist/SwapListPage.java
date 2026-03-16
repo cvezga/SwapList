@@ -4,10 +4,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SwapListPage<T extends Serializable> {
+public class SwapListPage<T extends Serializable> implements Serializable {
 
-    private final SwapListConfig config;
+    private final transient SwapListConfig config;
     private final List<T> items;
+    private boolean isSaved;
 
     public SwapListPage(SwapListConfig swapListConfig) {
         this.config = swapListConfig;
@@ -20,7 +21,7 @@ public class SwapListPage<T extends Serializable> {
     }
 
     public void add(T item) {
-        if(this.isFull()){
+        if (this.isFull()) {
             throw new IllegalStateException("Cannot add more items to the list");
         }
         this.items.add(item);
@@ -36,5 +37,13 @@ public class SwapListPage<T extends Serializable> {
 
     public T get(int i) {
         return this.items.get(i);
+    }
+
+    public boolean isSaved() {
+        return isSaved;
+    }
+
+    public void setSaved(boolean saved) {
+        isSaved = saved;
     }
 }
