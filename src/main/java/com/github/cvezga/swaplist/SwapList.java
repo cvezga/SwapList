@@ -26,6 +26,10 @@ public class SwapList {
         this(new SwapListConfig(swapListFilePath));
     }
 
+    public SwapList(String swapListFilePath, int itemsPerPage) {
+        this(new SwapListConfig(swapListFilePath,  itemsPerPage));
+    }
+
     /**
      * Creates a swap list with the given config (allows testing with custom config).
      *
@@ -48,16 +52,16 @@ public class SwapList {
      * @param page      the page to set as current (may be null to clear)
      * @param pageIndex the consecutive page index (used for file naming)
      */
-    public void setCurrentPage(SwapListPage page, int pageIndex) {
+    private void setCurrentPage(SwapListPage page, int pageIndex) {
         this.currentPage = page;
         this.currentPageIndex = pageIndex;
     }
 
-    public SwapListPage getCurrentPage() {
+    private SwapListPage getCurrentPage() {
         return currentPage;
     }
 
-    public int getCurrentPageIndex() {
+    private int getCurrentPageIndex() {
         return currentPageIndex;
     }
 
@@ -69,7 +73,7 @@ public class SwapList {
      * @throws IllegalStateException if there is no current page set
      * @throws IOException           if writing or creating the file fails
      */
-    public void saveCurrentPage() throws IOException {
+    private void saveCurrentPage() throws IOException {
         if (currentPage == null) {
             throw new IllegalStateException("no current page set");
         }

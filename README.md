@@ -22,8 +22,7 @@ mvn clean verify
 SwapList list = new SwapList("swap-file.data");
 
 // Custom: 500 items per page
-SwapListConfig config = new SwapListConfig("swap-file.data", 500);
-SwapList list = new SwapList(config);
+SwapList list = new SwapList("swap-file.data", 500);
 ```
 
 ### Adding and reading items
@@ -51,19 +50,19 @@ Serializable item = list.get(0);
 
 | Class           | Role |
 |----------------|------|
-| `SwapList`     | Main API: `add(Serializable)`, `get(int)`, `getConfig()`, `getCurrentPage()`, `saveCurrentPage()`, `setCurrentPage(page, index)`. |
+| `SwapList`     | Main API: `add(Serializable)`, `get(int)`, `getConfig()`. |
 | `SwapListConfig` | Immutable config: file path and `itemsPerPage`. |
 | `SwapListPage`  | One in-memory page of items; created and used internally by `SwapList`. |
 
-### Manual save / current page
 
-You can control the current page and trigger saves yourself:
+## Supported methods
 
-```java
-SwapList list = new SwapList("swap.data");
-list.setCurrentPage(somePage, 2);
-list.saveCurrentPage();  // Writes to swap.data.2
-```
+| Methos | Supported?                                                               |
+|--------|--------------------------------------------------------------------------|
+| add    | yes                                                                      
+| get    | yes                                                                      
+| delete | no
+| update | no
 
 ## License
 

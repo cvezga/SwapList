@@ -46,4 +46,12 @@ public final class SwapListConfig {
     public int getItemsPerPage() {
         return itemsPerPage;
     }
+
+    @Override
+    public String toString() {
+        return "SwapListConfig{" +
+                "swapListFilePath='" + swapListFilePath + '\'' +
+                ", itemsPerPage=" + itemsPerPage +
+                '}';
+    }
 }
