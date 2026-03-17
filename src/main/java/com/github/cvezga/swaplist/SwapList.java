@@ -18,6 +18,7 @@ public class SwapList {
     private SwapListPage<Serializable> currentPage;
     private int currentPageIndex;
     private int size;
+    private int lastPageIndex;
 
     /**
      * Creates a swap list using the given file path and default config.
@@ -42,6 +43,7 @@ public class SwapList {
     public SwapList(SwapListConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.currentPageIndex = 0;
+        this.lastPageIndex = 0;
         this.currentPage = new SwapListPage<>(config);
     }
 
@@ -51,17 +53,22 @@ public class SwapList {
 
 
     public void add(Serializable item) throws IOException {
-        if (this.currentPage.isFull()) {
+        if (this.currentPage.isFull() && !this.currentPage.isSaved()) {
             saveCurrentPage();
             createNewPageInstance();
+        } else if (this.currentPageIndex != this.lastPageIndex) {
+            saveCurrentPage();
+            loadPage(this.lastPageIndex);
         }
         this.currentPage.add(item);
+        this.currentPage.setIsSaved(false);
         this.size++;
     }
 
     private void createNewPageInstance() {
-        this.currentPageIndex++;
+        this.lastPageIndex++;
         this.currentPage = new SwapListPage<>(config);
+        this.currentPageIndex = this.lastPageIndex;
     }
 
     public Serializable get(int itemIndex) {
@@ -108,7 +115,6 @@ public class SwapList {
                  ObjectOutputStream oos = new ObjectOutputStream(out)) {
                 this.currentPage.setSaved(true);
                 oos.writeObject(currentPage);
-
             }
         }
     }
@@ -130,7 +136,6 @@ public class SwapList {
         } catch (IOException | ClassNotFoundException e) {
             throw new SwapListException(e);
         }
-
     }
 
     public int getSize() {

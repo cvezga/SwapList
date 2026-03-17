@@ -1,9 +1,11 @@
 package com.github.cvezga.swaplist;
 
+import java.io.Serializable;
+
 /**
  * Configuration for a swap list (file path and paging).
  */
-public final class SwapListConfig {
+public final class SwapListConfig implements Serializable {
 
     private static final int DEFAULT_ITEMS_PER_PAGE = 1_000;
     private static final int MIN_ITEMS_PER_PAGE = 1;

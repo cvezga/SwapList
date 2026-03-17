@@ -4,6 +4,7 @@ import com.github.cvezga.swaplist.exception.SwapListException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -211,6 +212,26 @@ class SwapListTest {
             assertEquals("item-" + i, swapList.get(i).toString());
         }
         assertTrue(Files.exists(dir.resolve("swap.data.2")));
+    }
+
+    @Test
+    void testSavedPagesUpdates(@TempDir Path dir) throws IOException {
+        Path baseFile = dir.resolve("swap.data");
+        SwapList swapList = new SwapList(new SwapListConfig(baseFile.toString(), 2));
+        swapList.add("item-1");
+        swapList.add("item-2");
+        swapList.add("item-3");
+        assertEquals(3, swapList.getSize());
+        assertTrue(Files.exists(dir.resolve("swap.data.0")));
+        assertFalse(Files.exists(dir.resolve("swap.data.1")));
+        assertEquals("item-2", swapList.get(1));
+        assertTrue(Files.exists(dir.resolve("swap.data.1")));
+        swapList.add("item-4");
+        assertEquals(4, swapList.getSize());
+        assertEquals("item-1", swapList.get(0));
+        assertEquals("item-2", swapList.get(1));
+        assertEquals("item-3", swapList.get(2));
+        assertEquals("item-4", swapList.get(3));
     }
 
 }
