@@ -234,4 +234,32 @@ class SwapListTest {
         assertEquals("item-4", swapList.get(3));
     }
 
+    @Test
+    void comparePerformance(@TempDir Path dir) throws IOException {
+        int itemPerList = 1_000_000;
+        Path baseFile1 = dir.resolve("swap1.data");
+        SwapList swapList1 = new SwapList(new SwapListConfig(baseFile1.toString(), itemPerList));
+        long took1 = writeAndReadTiming(swapList1, itemPerList);
+        System.out.println("p1 took: " + took1);
+
+        for (int i = 100; i < 50_000; i = i * 2) {
+            Path baseFile2 = dir.resolve("swap2.data");
+            SwapList swapList2 = new SwapList(new SwapListConfig(baseFile2.toString(),  i));
+            long took2 = writeAndReadTiming(swapList2, itemPerList);
+
+            System.out.println("p2 took: " + took2 + " itemPerPage: " + i);
+        }
+
+    }
+
+    private long writeAndReadTiming(SwapList swapList, int itemPerList) throws IOException {
+        long t1 = System.currentTimeMillis();
+        for (int i = 0; i < itemPerList; i++) {
+            swapList.add("item-" + i);
+        }
+        for (int i = 0; i < swapList.getSize(); i++) {
+            Serializable serializable = swapList.get(i);
+        }
+        return System.currentTimeMillis() - t1;
+    }
 }
