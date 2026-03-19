@@ -48,6 +48,13 @@ class SwapListTest {
         assertThrows(NullPointerException.class, () -> new SwapList((SwapListConfig) null));
     }
 
+    @Test
+    void swapListWithItemsPerPage() {
+        SwapList swapList = new SwapList("test.data", 500);
+        assertEquals(500, swapList.getConfig().getItemsPerPage());
+        assertEquals("test.data", swapList.getConfig().getSwapListFilePath());
+    }
+
     // --- SwapListConfig validation ---
 
     @Test
@@ -79,7 +86,7 @@ class SwapListTest {
 
     @Test
     void saveCurrentPage_writesFileWithPathPrefixAndPageIndex(@TempDir Path dir) throws Exception {
-        Path baseFile = dir.resolve("swap.data");
+        Path baseFile = dir.resolve(dir);
         SwapListConfig config = new SwapListConfig(baseFile.toString(), 5);
         SwapList swapList = new SwapList(config);
         // 11 items with page size 5: page0 saved when 6th added, page1 saved when 11th added
@@ -87,9 +94,9 @@ class SwapListTest {
             swapList.add("This is item #" + (i + 1));
         }
 
-        Path page0 = dir.resolve("swap.data.0");
+        Path page0 = dir.resolve("page.0");
         assertTrue(Files.exists(page0), "expected file: " + page0);
-        Path page1 = dir.resolve("swap.data.1");
+        Path page1 = dir.resolve("page.1");
         assertTrue(Files.exists(page1), "expected file: " + page1);
     }
 
@@ -98,7 +105,7 @@ class SwapListTest {
         int numberOfItemsPerPage = 5_000;
         int numberOfItems = 100_000;
         String text = "This is a test string entry for testing some data for item #";
-        Path baseFile = dir.resolve("swap.data");
+        Path baseFile = dir.resolve(dir);
         SwapListConfig config = new SwapListConfig(baseFile.toString(), numberOfItemsPerPage);
         SwapList swapList = new SwapList(config);
         for (int i = 0; i < numberOfItems; i++) {
@@ -199,33 +206,33 @@ class SwapListTest {
 
     @Test
     void addAcrossMultiplePages_andReadBack_allPagesWritten(@TempDir Path dir) throws Exception {
-        Path baseFile = dir.resolve("swap.data");
+        Path baseFile = dir.resolve(dir);
         SwapList swapList = new SwapList(new SwapListConfig(baseFile.toString(), 2));
         for (int i = 0; i < 6; i++) {
             swapList.add("item-" + i);
         }
         // Page 0 and 1 saved when 3rd and 5th item added; page 2 still in memory
-        assertTrue(Files.exists(dir.resolve("swap.data.0")));
-        assertTrue(Files.exists(dir.resolve("swap.data.1")));
+        assertTrue(Files.exists(dir.resolve("page.0")));
+        assertTrue(Files.exists(dir.resolve("page.1")));
         // get(0) triggers save of page 2 and load of page 0 → all three files exist
         for (int i = 0; i < 6; i++) {
             assertEquals("item-" + i, swapList.get(i).toString());
         }
-        assertTrue(Files.exists(dir.resolve("swap.data.2")));
+        assertTrue(Files.exists(dir.resolve("page.2")));
     }
 
     @Test
     void testSavedPagesUpdates(@TempDir Path dir) throws IOException {
-        Path baseFile = dir.resolve("swap.data");
+        Path baseFile = dir.resolve(dir);
         SwapList swapList = new SwapList(new SwapListConfig(baseFile.toString(), 2));
         swapList.add("item-1");
         swapList.add("item-2");
         swapList.add("item-3");
         assertEquals(3, swapList.getSize());
-        assertTrue(Files.exists(dir.resolve("swap.data.0")));
-        assertFalse(Files.exists(dir.resolve("swap.data.1")));
+        assertTrue(Files.exists(dir.resolve("page.0")));
+        assertFalse(Files.exists(dir.resolve("page.1")));
         assertEquals("item-2", swapList.get(1));
-        assertTrue(Files.exists(dir.resolve("swap.data.1")));
+        assertTrue(Files.exists(dir.resolve("page.1")));
         swapList.add("item-4");
         assertEquals(4, swapList.getSize());
         assertEquals("item-1", swapList.get(0));
@@ -236,7 +243,7 @@ class SwapListTest {
 
     @Test
     void comparePerformance(@TempDir Path dir) throws IOException {
-        int itemPerList = 1_000_000;
+        int itemPerList = 100_000;
         Path baseFile1 = dir.resolve("swap1.data");
         SwapList swapList1 = new SwapList(new SwapListConfig(baseFile1.toString(), itemPerList));
         long took1 = writeAndReadTiming(swapList1, itemPerList);

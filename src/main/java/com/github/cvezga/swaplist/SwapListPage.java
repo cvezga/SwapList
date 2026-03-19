@@ -50,4 +50,8 @@ public class SwapListPage<T extends Serializable> implements Serializable {
     public void setIsSaved(boolean isSaved) {
         this.isSaved = isSaved;
     }
+
+    public void clear() {
+        this.items.clear();
+    }
 }

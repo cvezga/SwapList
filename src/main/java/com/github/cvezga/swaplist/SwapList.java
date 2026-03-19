@@ -6,7 +6,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -23,11 +22,11 @@ public class SwapList {
     /**
      * Creates a swap list using the given file path and default config.
      *
-     * @param swapListFilePath path to the swap list file (must not be null or blank)
+     * @param swapListPath path to the swap list file (must not be null or blank)
      * @throws IllegalArgumentException if path is null or blank
      */
-    public SwapList(String swapListFilePath) {
-        this(new SwapListConfig(swapListFilePath));
+    public SwapList(String swapListPath) {
+        this(new SwapListConfig(swapListPath));
     }
 
     public SwapList(String swapListFilePath, int itemsPerPage) {
@@ -45,6 +44,25 @@ public class SwapList {
         this.currentPageIndex = 0;
         this.lastPageIndex = 0;
         this.currentPage = new SwapListPage<>(config);
+        updateStatus();
+    }
+
+    private void updateStatus() {
+//        File dir = new File(this.config.getSwapListFilePath());
+//        if (dir.exists()) {
+//            String[] list = dir.list();
+//            if (list != null) {
+//                this.lastPageIndex = list.length - 1;
+//                this.currentPageIndex = 0;
+//                //loadPage(this.lastPageIndex);
+//                //TODO update size; need to save meta data having config and lastPageIndex
+//                // lastindex should be compared with number of files
+//                // config can not be modified; if files already exist in cunstruction; comprare config itemsPerPage has to be the same
+//                // path could be changed ( e.i. if path was renamed )
+//                // if path does not exist or no page files exist; this is a new instance not used before
+//
+//            }
+//        }
     }
 
     public SwapListConfig getConfig() {
@@ -67,6 +85,7 @@ public class SwapList {
 
     private void createNewPageInstance() {
         this.lastPageIndex++;
+        this.currentPage.clear();
         this.currentPage = new SwapListPage<>(config);
         this.currentPageIndex = this.lastPageIndex;
     }
@@ -94,7 +113,7 @@ public class SwapList {
     /**
      * Serializes the current page instance and state to a file. The file name is
      * the config {@link SwapListConfig#getSwapListFilePath() swap list file path}
-     * as prefix with the consecutive current page index appended (e.g. {@code swap.data} + {@code .3} → {@code swap.data.3}).
+     * as prefix with "/page." and the consecutive current page index appended (e.g. {@code swap.data} + {@code /page.3} → {@code swap.data/page.3}).
      *
      * @throws IllegalStateException if there is no current page set
      * @throws IOException           if writing or creating the file fails
@@ -104,8 +123,7 @@ public class SwapList {
             throw new IllegalStateException("no current page set");
         }
         if (!this.currentPage.isSaved()) {
-            String path = config.getSwapListFilePath();
-            String fileName = path + "." + currentPageIndex;
+            String fileName = getPageFile(currentPageIndex);
             Path filePath = Paths.get(fileName);
             Path parent = filePath.getParent();
             if (parent != null && !Files.exists(parent)) {
@@ -120,8 +138,7 @@ public class SwapList {
     }
 
     private void loadPage(int pageIndex) {
-        String path = config.getSwapListFilePath();
-        String fileName = path + "." + pageIndex;
+        String fileName = getPageFile(pageIndex);
         Path filePath = Paths.get(fileName);
         Path parent = filePath.getParent();
         if (parent != null && !Files.exists(parent)) {
@@ -136,6 +153,11 @@ public class SwapList {
         } catch (IOException | ClassNotFoundException e) {
             throw new SwapListException(e);
         }
+    }
+
+    private String getPageFile(int pageIndex) {
+        String path = config.getSwapListFilePath();
+        return path + (path.endsWith("/") ? "" : "/") + "page." + pageIndex;
     }
 
     public int getSize() {
