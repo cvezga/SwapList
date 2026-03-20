@@ -16,17 +16,19 @@ class SwapListTest {
     // --- SwapList construction and config ---
 
     @Test
-    void swapListDefaultConfig() {
-        SwapList swapList = new SwapList("test-swap-list.data");
+    void swapListDefaultConfig(@TempDir Path dir) throws IOException {
+        Path baseFile = dir.resolve(dir);
+        SwapList swapList = new SwapList(baseFile.toString());
         SwapListConfig config = swapList.getConfig();
         assertNotNull(config);
-        assertEquals("test-swap-list.data", config.getSwapListFilePath());
+        assertEquals(baseFile.toString(), config.getSwapListFilePath());
         assertEquals(1_000, config.getItemsPerPage());
     }
 
     @Test
-    void swapListWithCustomConfig() {
-        SwapListConfig config = new SwapListConfig("custom.data", 500);
+    void swapListWithCustomConfig(@TempDir Path dir) throws IOException {
+        Path baseFile = dir.resolve(dir);
+        SwapListConfig config = new SwapListConfig(baseFile.toString(), 500);
         SwapList swapList = new SwapList(config);
         assertSame(config, swapList.getConfig());
         assertEquals(500, swapList.getConfig().getItemsPerPage());
@@ -49,10 +51,11 @@ class SwapListTest {
     }
 
     @Test
-    void swapListWithItemsPerPage() {
-        SwapList swapList = new SwapList("test.data", 500);
+    void swapListWithItemsPerPage(@TempDir Path dir) throws IOException {
+        Path baseFile = dir.resolve(dir);
+        SwapList swapList = new SwapList(baseFile.toString(), 500);
         assertEquals(500, swapList.getConfig().getItemsPerPage());
-        assertEquals("test.data", swapList.getConfig().getSwapListFilePath());
+        assertEquals(baseFile.toString(), swapList.getConfig().getSwapListFilePath());
     }
 
     // --- SwapListConfig validation ---
@@ -249,12 +252,27 @@ class SwapListTest {
         long took1 = writeAndReadTiming(swapList1, itemPerList);
         System.out.println("p1 took: " + took1);
 
-        for (int i = 100; i < 50_000; i = i * 2) {
-            Path baseFile2 = dir.resolve("swap2.data");
-            SwapList swapList2 = new SwapList(new SwapListConfig(baseFile2.toString(),  i));
-            long took2 = writeAndReadTiming(swapList2, itemPerList);
+        Path baseFile2 = dir.resolve("swap2.data");
+        SwapList swapList2 = new SwapList(new SwapListConfig(baseFile2.toString(), 1_000));
+        long took2 = writeAndReadTiming(swapList2, itemPerList);
+        System.out.println("p2 took: " + took2 + " itemPerPage: " + 1_000);
 
-            System.out.println("p2 took: " + took2 + " itemPerPage: " + i);
+    }
+
+    @Test
+    void testExistingSwapList(@TempDir Path dir) throws IOException {
+        int itemPerList = 10;
+        Path baseFile1 = dir.resolve("testExistingSwapList");
+        SwapList swapList1 = new SwapList(new SwapListConfig(baseFile1.toString(), itemPerList));
+        for (int i = 0; i < 25; i++) {
+            swapList1.add("item-" + i);
+        }
+        swapList1.flush();
+        SwapList swapList2 = new SwapList(new SwapListConfig(baseFile1.toString(), itemPerList));
+        assertEquals(25, swapList2.getSize());
+        for (int i = 0; i < 25; i++) {
+            assertEquals("item-" + i, swapList2.get(i));
+
         }
 
     }
@@ -269,4 +287,6 @@ class SwapListTest {
         }
         return System.currentTimeMillis() - t1;
     }
+
+
 }

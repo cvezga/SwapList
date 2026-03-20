@@ -18,6 +18,8 @@ public class SwapList {
     private int currentPageIndex;
     private int size;
     private int lastPageIndex;
+    private static final String PAGE_PREFIX = "page.";
+    private static final String CONFIG_FILENAME = "config";
 
     /**
      * Creates a swap list using the given file path and default config.
@@ -25,11 +27,11 @@ public class SwapList {
      * @param swapListPath path to the swap list file (must not be null or blank)
      * @throws IllegalArgumentException if path is null or blank
      */
-    public SwapList(String swapListPath) {
+    public SwapList(String swapListPath) throws IOException {
         this(new SwapListConfig(swapListPath));
     }
 
-    public SwapList(String swapListFilePath, int itemsPerPage) {
+    public SwapList(String swapListFilePath, int itemsPerPage) throws IOException {
         this(new SwapListConfig(swapListFilePath, itemsPerPage));
     }
 
@@ -39,7 +41,7 @@ public class SwapList {
      * @param config swap list configuration (must not be null)
      * @throws NullPointerException if config is null
      */
-    public SwapList(SwapListConfig config) {
+    public SwapList(SwapListConfig config) throws IOException {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.currentPageIndex = 0;
         this.lastPageIndex = 0;
@@ -47,22 +49,49 @@ public class SwapList {
         updateStatus();
     }
 
-    private void updateStatus() {
-//        File dir = new File(this.config.getSwapListFilePath());
-//        if (dir.exists()) {
-//            String[] list = dir.list();
-//            if (list != null) {
-//                this.lastPageIndex = list.length - 1;
-//                this.currentPageIndex = 0;
-//                //loadPage(this.lastPageIndex);
-//                //TODO update size; need to save meta data having config and lastPageIndex
-//                // lastindex should be compared with number of files
-//                // config can not be modified; if files already exist in cunstruction; comprare config itemsPerPage has to be the same
-//                // path could be changed ( e.i. if path was renamed )
-//                // if path does not exist or no page files exist; this is a new instance not used before
-//
-//            }
-//        }
+    private void updateStatus() throws IOException {
+        checkConfig();
+        File dir = new File(this.config.getSwapListFilePath());
+
+        if (dir.exists()) {
+            String[] list = dir.list((dir1, name) -> name.contains(PAGE_PREFIX));
+            if (list != null && list.length > 0) {
+                this.lastPageIndex = list.length - 1;
+                this.currentPageIndex = this.lastPageIndex;
+                loadPage(this.lastPageIndex);
+                this.size = this.currentPage.getList().size() + (this.lastPageIndex * this.config.getItemsPerPage());
+                assert new File(this.config.getSwapListFilePath(), PAGE_PREFIX + "0").exists();
+                assert new File(this.config.getSwapListFilePath(), PAGE_PREFIX + this.currentPageIndex).exists();
+            }
+        }
+    }
+
+    private void checkConfig() throws IOException {
+        Path configDir = Paths.get(this.config.getSwapListFilePath());
+        Files.createDirectories(configDir);
+        File configFile = new File(configDir.toFile(), CONFIG_FILENAME);
+        if (!configFile.exists()) {
+            try (FileWriter fw = new FileWriter(configFile)) {
+                fw.write(String.valueOf(this.config.getItemsPerPage()));
+            }
+        } else {
+            try (FileReader fr = new FileReader(configFile);
+                 BufferedReader br = new BufferedReader(fr)) {
+                String content = br.readLine();
+                if (content == null) {
+                    throw new IOException("Config file is empty or corrupted");
+                }
+                content = content.trim();
+                try {
+                    int itemsPerPage = Integer.parseInt(content);
+                    if (this.config.getItemsPerPage() != itemsPerPage) {
+                        throw new IOException("Items per Page not matching");
+                    }
+                } catch (NumberFormatException e) {
+                    throw new IOException("Invalid items per page in config file", e);
+                }
+            }
+        }
     }
 
     public SwapListConfig getConfig() {
@@ -146,8 +175,10 @@ public class SwapList {
         }
         try (InputStream is = Files.newInputStream(filePath.toFile().toPath());
              ObjectInputStream ois = new ObjectInputStream(is)) {
-            this.currentPage = (SwapListPage<Serializable>) ois.readObject();
-            //this.currentPage = new SwapListPage<>(items, config);
+            @SuppressWarnings("unchecked")
+            SwapListPage<Serializable> page = (SwapListPage<Serializable>) ois.readObject();
+            page.setConfig(this.config);
+            this.currentPage = page;
             this.currentPageIndex = pageIndex;
 
         } catch (IOException | ClassNotFoundException e) {
@@ -157,10 +188,14 @@ public class SwapList {
 
     private String getPageFile(int pageIndex) {
         String path = config.getSwapListFilePath();
-        return path + (path.endsWith("/") ? "" : "/") + "page." + pageIndex;
+        return path + (path.endsWith("/") ? "" : "/") + PAGE_PREFIX + pageIndex;
     }
 
     public int getSize() {
         return size;
+    }
+
+    public void flush() throws IOException {
+        this.saveCurrentPage();
     }
 }

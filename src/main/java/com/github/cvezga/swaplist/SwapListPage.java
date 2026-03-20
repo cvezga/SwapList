@@ -6,7 +6,7 @@ import java.util.List;
 
 public class SwapListPage<T extends Serializable> implements Serializable {
 
-    private final SwapListConfig config;
+    private transient SwapListConfig config;
     private final List<T> items;
     private boolean isSaved;
 
@@ -53,5 +53,9 @@ public class SwapListPage<T extends Serializable> implements Serializable {
 
     public void clear() {
         this.items.clear();
+    }
+
+    public void setConfig(SwapListConfig config) {
+        this.config = config;
     }
 }
