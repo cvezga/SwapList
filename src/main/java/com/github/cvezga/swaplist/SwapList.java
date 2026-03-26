@@ -1,6 +1,8 @@
 package com.github.cvezga.swaplist;
 
+import com.esotericsoftware.kryo.io.Input;
 import com.github.cvezga.swaplist.exception.SwapListException;
+import com.github.cvezga.swaplist.serializer.KryoSerializer;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -8,12 +10,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
+import static java.nio.file.Files.readAllBytes;
+
 /**
  * Swap list instance backed by a configurable swap file.
  */
 public class SwapList {
 
     private final SwapListConfig config;
+    private final KryoSerializer serializer;
     private SwapListPage<Serializable> currentPage;
     private int currentPageIndex;
     private int size;
@@ -46,6 +51,7 @@ public class SwapList {
         this.currentPageIndex = 0;
         this.lastPageIndex = 0;
         this.currentPage = new SwapListPage<>(config);
+        this.serializer = new KryoSerializer();
         updateStatus();
     }
 
@@ -100,11 +106,18 @@ public class SwapList {
 
 
     public void add(Serializable item) throws IOException {
-        if (this.currentPage.isFull() && !this.currentPage.isSaved()) {
-            saveCurrentPage();
-            createNewPageInstance();
+        if (this.currentPage.isFull()) {
+            if (this.currentPage.isUpdated()) {
+                saveCurrentPage();
+            }
+            loadPage(this.lastPageIndex);
+            if (this.currentPage.isFull()) {
+                createNewPageInstance();
+            }
         } else if (this.currentPageIndex != this.lastPageIndex) {
-            saveCurrentPage();
+            if (this.currentPage.isUpdated()) {
+                saveCurrentPage();
+            }
             loadPage(this.lastPageIndex);
         }
         this.currentPage.add(item);
@@ -151,18 +164,17 @@ public class SwapList {
         if (currentPage == null) {
             throw new IllegalStateException("no current page set");
         }
-        if (!this.currentPage.isSaved()) {
-            String fileName = getPageFile(currentPageIndex);
-            Path filePath = Paths.get(fileName);
-            Path parent = filePath.getParent();
-            if (parent != null && !Files.exists(parent)) {
-                Files.createDirectories(parent);
-            }
-            try (OutputStream out = Files.newOutputStream(filePath);
-                 ObjectOutputStream oos = new ObjectOutputStream(out)) {
-                this.currentPage.setSaved(true);
-                oos.writeObject(currentPage);
-            }
+        String fileName = getPageFile(currentPageIndex);
+        Path filePath = Paths.get(fileName);
+        Path parent = filePath.getParent();
+        if (parent != null && !Files.exists(parent)) {
+            Files.createDirectories(parent);
+        }
+        try (OutputStream out = Files.newOutputStream(filePath)) {
+            byte[] serialize = serializer.serialize(currentPage);
+            this.currentPage.setSaved(true);
+            out.write(serialize);
+            out.flush();
         }
     }
 
@@ -173,15 +185,17 @@ public class SwapList {
         if (parent != null && !Files.exists(parent)) {
             throw new IllegalStateException(String.format("path %s does not exist", fileName));
         }
-        try (InputStream is = Files.newInputStream(filePath.toFile().toPath());
-             ObjectInputStream ois = new ObjectInputStream(is)) {
+        try (InputStream is = Files.newInputStream(filePath.toFile().toPath())) {
             @SuppressWarnings("unchecked")
-            SwapListPage<Serializable> page = (SwapListPage<Serializable>) ois.readObject();
+            SwapListPage<Serializable> page = serializer.deserialize(SwapListPage.class, is.readAllBytes());
+
+
+            //SwapListPage<Serializable> page = (SwapListPage<Serializable>) ois.readObject();
             page.setConfig(this.config);
             this.currentPage = page;
             this.currentPageIndex = pageIndex;
 
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             throw new SwapListException(e);
         }
     }

@@ -9,6 +9,12 @@ public class SwapListPage<T extends Serializable> implements Serializable {
     private transient SwapListConfig config;
     private final List<T> items;
     private boolean isSaved;
+    private boolean updated;
+
+    public SwapListPage() {
+        this.config = new SwapListConfig();
+        this.items = new ArrayList<>(this.config.getItemsPerPage());
+    }
 
     public SwapListPage(SwapListConfig swapListConfig) {
         this.config = swapListConfig;
@@ -25,6 +31,7 @@ public class SwapListPage<T extends Serializable> implements Serializable {
             throw new IllegalStateException("Cannot add more items to the list");
         }
         this.items.add(item);
+        this.updated = true;
     }
 
     public boolean isFull() {
@@ -57,5 +64,21 @@ public class SwapListPage<T extends Serializable> implements Serializable {
 
     public void setConfig(SwapListConfig config) {
         this.config = config;
+    }
+
+    public SwapListConfig getConfig() {
+        return config;
+    }
+
+    public List<T> getItems() {
+        return items;
+    }
+
+    public boolean isUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(boolean updated) {
+        this.updated = updated;
     }
 }

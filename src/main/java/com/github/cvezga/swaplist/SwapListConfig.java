@@ -10,15 +10,14 @@ public final class SwapListConfig implements Serializable {
     private static final int DEFAULT_ITEMS_PER_PAGE = 1_000;
     private static final int MIN_ITEMS_PER_PAGE = 1;
 
-    private final String swapListFilePath;
-    private final int itemsPerPage;
+    private String swapListFilePath;
+    private int itemsPerPage;
 
-    /**
-     * Creates config with the given file path and default items per page.
-     *
-     * @param swapListFilePath path to the swap list file (must not be null or blank)
-     * @throws IllegalArgumentException if path is null/blank or itemsPerPage &lt; 1
-     */
+
+    public SwapListConfig() {
+        this("SwapListPath", DEFAULT_ITEMS_PER_PAGE);
+    }
+
     public SwapListConfig(String swapListFilePath) {
         this(swapListFilePath, DEFAULT_ITEMS_PER_PAGE);
     }
@@ -55,5 +54,13 @@ public final class SwapListConfig implements Serializable {
                 "swapListFilePath='" + swapListFilePath + '\'' +
                 ", itemsPerPage=" + itemsPerPage +
                 '}';
+    }
+
+    public void setSwapListFilePath(String swapListFilePath) {
+        this.swapListFilePath = swapListFilePath;
+    }
+
+    public void setItemsPerPage(int itemsPerPage) {
+        this.itemsPerPage = itemsPerPage;
     }
 }
