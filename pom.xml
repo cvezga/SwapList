@@ -6,7 +6,7 @@
 
     <groupId>com.github.cvezga</groupId>
     <artifactId>swaplist</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-T-1000-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>SwapList</name>
     <description>Swap list data structure and configuration.</description>
